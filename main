@@ -1,0 +1,100 @@
+import xml.etree.ElementTree as et
+import os
+import glob
+import numpy as np
+from shutil import copyfile
+
+def change_file_name_via_xml_label(image_file, label_file, path):
+
+    doc = et.parse(label_file)
+    root = doc.getroot()
+
+    # root[6][0] #->name
+    # root[7].find('name').text.split()[0]
+    image_path, image_name = os.path.split(image_file)
+    label_path, label_name = os.path.split(image_file)
+    image_ID = image_name.split('_')[0]
+    label_ID = label_name.split('_')[0]
+    assert image_ID==label_ID, 'Image ID and label ID is not same'
+
+    Class_name = []
+    for obj in root.iter("object"):
+        for cName in obj.iter('name'):
+            Class_name.append(cName.text.split()[0])
+
+    Class_name = np.asarray(Class_name)
+    unique_class_name = np.unique(Class_name)
+
+    append_class_name = ''
+    for cName in unique_class_name:
+        print(cName)
+        append_class_name = append_class_name+cName
+
+    changed_file_name = os.path.join(path.save_data_dir, (image_name.split('.')[0] + '_' + append_class_name + '.jpg'))
+    changed_label_name = os.path.join(path.save_label_dir, (label_name.split('.')[0] + '+' + append_class_name + '.txt'))
+
+    copyfile(image_file, changed_file_name)
+    copyfile(label_file, changed_label_name)
+
+
+
+
+# image_path = os.path.join('C:/', 'Users', 'Deep', 'Desktop', 'Project', 'KAC', 'Data', '201908', '20190801_img')
+# label_path = os.path.join('C:/', 'Users', 'Deep', 'Desktop', 'Project', 'KAC', 'Data', '201908', '20190801_voc')
+
+class Init_path():
+    def __init__(self, orig_dir, orig_data_dir, orig_label_dir, save_dir, save_data_dir, save_label_dir):
+
+        self.orig_dir = orig_dir
+        self.orig_data_dir = orig_data_dir
+        self.orig_label_dir = orig_label_dir
+
+        self.save_dir = save_dir
+        self.save_data_dir = save_data_dir
+        self.save_label_dir = save_label_dir
+
+        self.Mkdir(self.orig_dir)
+        self.Mkdir(self.orig_data_dir)
+        self.Mkdir(self.orig_label_dir)
+
+        self.Mkdir(self.save_dir)
+        self.Mkdir(self.save_data_dir)
+        self.Mkdir(self.save_label_dir)
+
+    def Mkdir(self, dir):
+        if os.path.exists(dir)==False:
+            os.makedirs(dir)
+
+if __name__ == '__main__':
+
+    orig_dir = os.path.join('.', 'Original_Data')
+    orig_data_dir = os.path.join(orig_dir, 'Data')
+    orig_label_dir = os.path.join(orig_dir, 'Label')
+
+    save_dir = os.path.join('.', 'Data_of_changed_name')
+    save_data_dir = os.path.join(save_dir, 'Data')
+    save_label_dir = os.path.join(save_dir, 'Label')
+
+    path = Init_path(orig_dir, orig_data_dir, orig_label_dir, save_dir, save_data_dir, save_label_dir)
+
+    print('데이터를 여기에 넣어주세요')
+    print('이미지 데이터 경로 : ', os.path.join(orig_data_dir))
+    print('레이블 데이터 경로', os.path.join(orig_label_dir))
+
+    print('Press Enter to start...')
+    input()
+
+    image_file_list = sorted(glob.glob(os.path.join(path.orig_data_dir, '*', '*.jpg')))
+    label_file_list = sorted(glob.glob(os.path.join(path.orig_label_dir, '*', '*.xml')))
+
+    if (any(image_file_list) and any(label_file_list)) == False:
+        print('Any file not exists')
+        print('Enter to END')
+        input()
+
+    for i, (image_file, label_file) in enumerate(zip(image_file_list, label_file_list)):
+        print('processed start')
+        print('Data No. ', i)
+        change_file_name_via_xml_label(image_file=image_file, label_file=label_file, path=path)
+
+
